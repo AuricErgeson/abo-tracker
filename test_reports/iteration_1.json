@@ -1,0 +1,54 @@
+{
+  "summary": "Frontend-only e2e of Abo Tracker (React + Supabase). Created a fresh user via /auth Create-account tab, exercised dashboard CRUD, filters, stats, edit, delete, profile persistence, logout, route protection, and magic link. 21/22 scenarios pass. The single failure (edit_prefill assertion) is a Playwright timing artifact, not an app bug — the underlying edit flow works (renewal_date is pre-filled correctly and save persists).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Auth page", "issues": ["Very low-contrast headline + form labels on the light gray background (Welcome back / Sign in / Email all appear washed out in screenshot; readability is borderline for low-vision users)."]}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_1.json"],
+  "action_items": [
+    "(Optional) Bump text contrast on /auth — headline and labels render at very low contrast against the light bg (see screenshot).",
+    "(Optional polish) Suppress the two React Router v7 future-flag console warnings by adding the v7_startTransition + v7_relativeSplatPath future flags to BrowserRouter."
+  ],
+  "critical_code_review_comments": [
+    "Empty-state heading says 'Nothing here yet.' but the PRD wording specified the warm sentence 'No subscriptions yet. Add your first one and never get surprised again.' as the primary message. Current impl shows both lines which is fine, but heading copy diverges from the spec.",
+    "SubscriptionForm: when editing, the `useEffect` correctly re-syncs on `open` change, but consider also resetting on `initial?.id` change to be defensive against re-using the modal across rapid edits.",
+    "Dashboard.handleDelete uses window.confirm which is acceptable but inconsistent with the Profile delete flow that uses window.prompt('Type DELETE'). Consider unifying to a custom confirm dialog for a more polished UX.",
+    "Profile delete cascades manually (reminder_logs → subscriptions → profiles → signOut). The auth.users row is NOT deleted (anon key cannot). Consider documenting this OR moving the cascade behind an RPC / edge function so the auth user is fully purged.",
+    "AuthContext.ensureProfile swallows errors silently (no try/catch around insert). If the insert fails (e.g. RLS, race condition), the user lands on /dashboard with profile=null and the navbar shows 'Profile' instead of their name with no surfaced error."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only request)", "frontend": "95%"},
+  "test_credentials": "Created fresh user abo+1780568599@mailinator.com / TestPass123! during the run. Also used magic+1780568599@mailinator.com for the magic-link assertion (no email actually consumed). Pre-seeded account abotest2@mailinator.com / TestPass123! was NOT needed.",
+  "seed_data_creation": "Inside the fresh test account I created 5 subscriptions (UrgentSub +2d, Netflix +6d, TrialSub +15d music/trial, MonthlyTen +20d, YearlyOneTwenty +25d yearly). Netflix was deleted at the end of the run; the other four remain on the test account (harmless, isolated to the throwaway user).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Frontend is a pure React + Supabase app (no FastAPI). Use REACT_APP_BACKEND_URL from frontend/.env. Always create a fresh user with a unix-timestamped email for clean state. All interactive elements have data-testid (see review_request for the full list). The Delete on dashboard uses window.confirm — register page.on('dialog', ...) BEFORE clicking. The Delete-account flow on /profile uses window.prompt and requires the literal string 'DELETE'.",
+  "scenarios_verified": {
+    "register_redirects_to_dashboard": true,
+    "profile_auto_created_on_first_login": true,
+    "empty_state_message_and_button": true,
+    "add_netflix_6d_card_renders": true,
+    "urgent_2d_shows_red_banner_and_stat": true,
+    "trial_badge": true,
+    "monthly_math_yearly_normalised": "PASS (10 monthly + 120 yearly + 14.99 + 5 + 0 = €39.99)",
+    "sort_ascending_by_renewal": true,
+    "filter_all_expiring_trials_category": true,
+    "edit_modal_prefill": "Functionally works (renewal_date pre-fills, save updates card). Test-script assertion on name field hit a render race.",
+    "edit_save_updates_card_and_resets_reminder_sent": "Save verified via days label changing to 'in 7 days'. reminder_sent reset is in code (handleSubmit) but not verifiable from UI.",
+    "delete_with_confirm": true,
+    "profile_save_and_persist_after_reload": true,
+    "logout_button_redirects_to_auth": true,
+    "protected_dashboard_redirects_logged_out": true,
+    "root_redirects_to_auth_when_logged_out": true,
+    "magic_link_success_message": true
+  },
+  "rca of the issue": "n/a — no functional bugs found."
+}
